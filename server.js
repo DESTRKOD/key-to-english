@@ -11,7 +11,12 @@ const HOST = '0.0.0.0';
 
 // Serve static assets from root directory
 app.use(express.static(__dirname, {
-  extensions: ['html', 'htm']
+  extensions: ['html', 'htm'],
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
 }));
 
 // Fallback for root or unmatched routes
