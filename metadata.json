@@ -1,0 +1,8 @@
+{
+  "name": "Key to English",
+  "description": "Онлайн-школа английского языка для детей 7–15 лет: мини-группы, живые преподаватели и игровое приложение для практики дома",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
