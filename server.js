@@ -19,8 +19,11 @@ app.use(express.static(__dirname, {
   }
 }));
 
-// Fallback for root or unmatched routes
+// Fallback only for non-file routes
 app.get('*', (req, res) => {
+  if (req.path.includes('.')) {
+    return res.status(404).send('Not found');
+  }
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
