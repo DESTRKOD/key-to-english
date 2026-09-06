@@ -46,4 +46,143 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
+
+  // Mobile reviews automatic slideshow & swipe
+  var reviewsTrack = document.getElementById('reviews-track');
+  var reviewsDotsWrap = document.getElementById('reviews-dots');
+
+  if (reviewsTrack) {
+    var reviewCards = reviewsTrack.querySelectorAll('.review-card');
+    var reviewDots = reviewsDotsWrap ? reviewsDotsWrap.querySelectorAll('.review-dot') : [];
+    var totalSlides = reviewCards.length;
+    var currentSlide = 0;
+    var autoSlideInterval = null;
+    var pauseTimeout = null;
+    var isInteracting = false;
+
+    function updateActiveReviewDot(activeIndex) {
+      reviewDots.forEach(function (dot, idx) {
+        if (idx === activeIndex) {
+          dot.classList.add('active');
+          dot.setAttribute('aria-selected', 'true');
+        } else {
+          dot.classList.remove('active');
+          dot.setAttribute('aria-selected', 'false');
+        }
+      });
+    }
+
+    function goToSlide(index, smooth) {
+      if (totalSlides === 0) return;
+      if (index < 0) index = totalSlides - 1;
+      if (index >= totalSlides) index = 0;
+      currentSlide = index;
+
+      var trackWidth = reviewsTrack.clientWidth;
+      reviewsTrack.scrollTo({
+        left: currentSlide * trackWidth,
+        behavior: smooth !== false ? 'smooth' : 'auto'
+      });
+      updateActiveReviewDot(currentSlide);
+    }
+
+    function startAutoSlide() {
+      stopAutoSlide();
+      if (window.innerWidth > 768 || totalSlides <= 1) return;
+      autoSlideInterval = setInterval(function () {
+        if (isInteracting) return;
+        goToSlide(currentSlide + 1, true);
+      }, 4500);
+    }
+
+    function stopAutoSlide() {
+      if (autoSlideInterval) {
+        clearInterval(autoSlideInterval);
+        autoSlideInterval = null;
+      }
+    }
+
+    function pauseAndResumeAutoSlide() {
+      stopAutoSlide();
+      isInteracting = true;
+      clearTimeout(pauseTimeout);
+      pauseTimeout = setTimeout(function () {
+        isInteracting = false;
+        startAutoSlide();
+      }, 5000);
+    }
+
+    // Touch events for manual swipe
+    reviewsTrack.addEventListener('touchstart', function () {
+      isInteracting = true;
+      stopAutoSlide();
+    }, { passive: true });
+
+    reviewsTrack.addEventListener('touchend', function () {
+      pauseAndResumeAutoSlide();
+    }, { passive: true });
+
+    reviewsTrack.addEventListener('touchcancel', function () {
+      pauseAndResumeAutoSlide();
+    }, { passive: true });
+
+    // Desktop hover pause
+    reviewsTrack.addEventListener('mouseenter', function () {
+      isInteracting = true;
+      stopAutoSlide();
+    });
+
+    reviewsTrack.addEventListener('mouseleave', function () {
+      isInteracting = false;
+      startAutoSlide();
+    });
+
+    // Update dots on manual swipe/scroll
+    var scrollDebounce;
+    reviewsTrack.addEventListener('scroll', function () {
+      clearTimeout(scrollDebounce);
+      scrollDebounce = setTimeout(function () {
+        var trackWidth = reviewsTrack.clientWidth || 1;
+        var newIndex = Math.round(reviewsTrack.scrollLeft / trackWidth);
+        if (newIndex >= 0 && newIndex < totalSlides && newIndex !== currentSlide) {
+          currentSlide = newIndex;
+          updateActiveReviewDot(currentSlide);
+        }
+      }, 40);
+    }, { passive: true });
+
+    // Dot indicators click
+    reviewDots.forEach(function (dot) {
+      dot.addEventListener('click', function () {
+        var idx = parseInt(dot.getAttribute('data-index'), 10);
+        if (!isNaN(idx)) {
+          goToSlide(idx, true);
+          pauseAndResumeAutoSlide();
+        }
+      });
+    });
+
+    // Handle tab visibility and resize
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) {
+        stopAutoSlide();
+      } else if (window.innerWidth <= 768 && !isInteracting) {
+        startAutoSlide();
+      }
+    });
+
+    window.addEventListener('resize', function () {
+      if (window.innerWidth <= 768) {
+        if (!autoSlideInterval && !isInteracting) {
+          startAutoSlide();
+        }
+      } else {
+        stopAutoSlide();
+      }
+    });
+
+    // Initial setup
+    updateActiveReviewDot(0);
+    startAutoSlide();
+  }
 });
