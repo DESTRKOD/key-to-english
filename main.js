@@ -52,19 +52,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
   if (reviewsTrack) {
     var reviewCards = reviewsTrack.querySelectorAll('.review-card');
+    var sliderWrap = reviewsTrack.parentElement;
     var totalSlides = reviewCards.length;
     var currentSlide = 0;
     var autoSlideInterval = null;
     var pauseTimeout = null;
     var isTouching = false;
+    var isMouseDown = false;
     var startX = 0;
     var startY = 0;
     var currentX = 0;
     var isHorizontalSwipe = false;
     var touchStartTime = 0;
+    var lastTouchTime = 0;
 
     function isMobile() {
       return window.innerWidth <= 768;
+    }
+
+    function getSlideWidth() {
+      if (sliderWrap && sliderWrap.clientWidth > 0) {
+        return sliderWrap.clientWidth;
+      }
+      return reviewsTrack.clientWidth > 0 ? reviewsTrack.clientWidth : window.innerWidth;
     }
 
     function updateSlidePosition(smooth) {
@@ -73,12 +83,13 @@ document.addEventListener('DOMContentLoaded', function () {
         reviewsTrack.style.transition = '';
         return;
       }
+      var width = getSlideWidth();
       if (smooth !== false) {
         reviewsTrack.style.transition = 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)';
       } else {
         reviewsTrack.style.transition = 'none';
       }
-      reviewsTrack.style.transform = 'translate3d(' + (-currentSlide * 100) + '%, 0, 0)';
+      reviewsTrack.style.transform = 'translate3d(' + (-currentSlide * width) + 'px, 0, 0)';
     }
 
     function goToSlide(index, smooth) {
@@ -104,7 +115,7 @@ document.addEventListener('DOMContentLoaded', function () {
       stopAutoSlide();
       if (!isMobile() || totalSlides <= 1) return;
       autoSlideInterval = setInterval(function () {
-        if (isTouching) return;
+        if (isTouching || isMouseDown) return;
         nextSlide();
       }, 4500);
     }
@@ -121,14 +132,16 @@ document.addEventListener('DOMContentLoaded', function () {
       clearTimeout(pauseTimeout);
       pauseTimeout = setTimeout(function () {
         isTouching = false;
+        isMouseDown = false;
         startAutoSlide();
       }, 4500);
     }
 
-    // Touch events for mobile swipe
+    // Touch handlers (attached to track and window for 100% gesture capture)
     reviewsTrack.addEventListener('touchstart', function (e) {
       if (!isMobile()) return;
       stopAutoSlide();
+      lastTouchTime = Date.now();
       isTouching = true;
       var touch = e.touches[0];
       startX = touch.clientX;
@@ -139,8 +152,8 @@ document.addEventListener('DOMContentLoaded', function () {
       reviewsTrack.style.transition = 'none';
     }, { passive: true });
 
-    reviewsTrack.addEventListener('touchmove', function (e) {
-      if (!isTouching || !isMobile()) return;
+    window.addEventListener('touchmove', function (e) {
+      if (!isTouching || !isMobile() || e.touches.length === 0) return;
       var touch = e.touches[0];
       currentX = touch.clientX;
       var diffX = currentX - startX;
@@ -151,7 +164,9 @@ document.addEventListener('DOMContentLoaded', function () {
           if (Math.abs(diffX) > Math.abs(diffY)) {
             isHorizontalSwipe = true;
           } else {
+            // User is scrolling vertically - cancel horizontal swipe
             isTouching = false;
+            updateSlidePosition(true);
             return;
           }
         }
@@ -159,8 +174,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
       if (isHorizontalSwipe) {
         if (e.cancelable) e.preventDefault();
-        var trackWidth = reviewsTrack.clientWidth || 300;
-        var offsetPx = -currentSlide * trackWidth + diffX;
+        var width = getSlideWidth();
+        var offsetPx = -currentSlide * width + diffX;
         reviewsTrack.style.transform = 'translate3d(' + offsetPx + 'px, 0, 0)';
       }
     }, { passive: false });
@@ -168,6 +183,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function handleTouchEnd() {
       if (!isTouching || !isMobile()) return;
       isTouching = false;
+      lastTouchTime = Date.now();
       var diffX = currentX - startX;
       var elapsed = Date.now() - touchStartTime;
       var threshold = 35;
@@ -185,19 +201,18 @@ document.addEventListener('DOMContentLoaded', function () {
         goToSlide(currentSlide, true);
       }
 
+      isHorizontalSwipe = false;
       pauseAndResumeAutoSlide();
     }
 
-    reviewsTrack.addEventListener('touchend', handleTouchEnd, { passive: true });
-    reviewsTrack.addEventListener('touchcancel', handleTouchEnd, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
+    window.addEventListener('touchcancel', handleTouchEnd, { passive: true });
 
-    // Mouse drag support for mobile preview/testing
-    var isMouseDown = false;
+    // Mouse drag support for desktop emulation
     reviewsTrack.addEventListener('mousedown', function (e) {
-      if (!isMobile()) return;
+      if (!isMobile() || Date.now() - lastTouchTime < 600) return;
       stopAutoSlide();
       isMouseDown = true;
-      isTouching = true;
       startX = e.clientX;
       startY = e.clientY;
       currentX = startX;
@@ -208,7 +223,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     window.addEventListener('mousemove', function (e) {
-      if (!isMouseDown || !isTouching || !isMobile()) return;
+      if (!isMouseDown || !isMobile()) return;
       currentX = e.clientX;
       var diffX = currentX - startX;
       var diffY = e.clientY - startY;
@@ -219,7 +234,6 @@ document.addEventListener('DOMContentLoaded', function () {
             isHorizontalSwipe = true;
           } else {
             isMouseDown = false;
-            isTouching = false;
             reviewsTrack.classList.remove('grabbing');
             return;
           }
@@ -228,8 +242,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
       if (isHorizontalSwipe) {
         e.preventDefault();
-        var trackWidth = reviewsTrack.clientWidth || 300;
-        var offsetPx = -currentSlide * trackWidth + diffX;
+        var width = getSlideWidth();
+        var offsetPx = -currentSlide * width + diffX;
         reviewsTrack.style.transform = 'translate3d(' + offsetPx + 'px, 0, 0)';
       }
     });
@@ -238,7 +252,24 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!isMouseDown) return;
       isMouseDown = false;
       reviewsTrack.classList.remove('grabbing');
-      handleTouchEnd();
+      var diffX = currentX - startX;
+      var elapsed = Date.now() - touchStartTime;
+      var threshold = 35;
+      var isFastFlick = elapsed < 280 && Math.abs(diffX) > 15;
+
+      if (isHorizontalSwipe) {
+        if (diffX < -threshold || (diffX < 0 && isFastFlick)) {
+          nextSlide();
+        } else if (diffX > threshold || (diffX > 0 && isFastFlick)) {
+          prevSlide();
+        } else {
+          goToSlide(currentSlide, true);
+        }
+      } else {
+        goToSlide(currentSlide, true);
+      }
+      isHorizontalSwipe = false;
+      pauseAndResumeAutoSlide();
     });
 
     // Handle tab visibility and window resize
@@ -250,15 +281,19 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
 
+    var resizeTimer;
     window.addEventListener('resize', function () {
-      if (isMobile()) {
-        updateSlidePosition(false);
-        if (!autoSlideInterval) startAutoSlide();
-      } else {
-        stopAutoSlide();
-        reviewsTrack.style.transform = '';
-        reviewsTrack.style.transition = '';
-      }
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function () {
+        if (isMobile()) {
+          updateSlidePosition(false);
+          if (!autoSlideInterval) startAutoSlide();
+        } else {
+          stopAutoSlide();
+          reviewsTrack.style.transform = '';
+          reviewsTrack.style.transition = '';
+        }
+      }, 100);
     });
 
     // Initialize
