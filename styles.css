@@ -342,70 +342,39 @@ details p{padding:0 0 18px;color:var(--ink-soft);font-size:15px;}
 .reviews-slider-wrap{position:relative;}
 .reviews-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;}
 @media (max-width:960px) and (min-width:769px){.reviews-grid{grid-template-columns:repeat(2,1fr);}}
-.reviews-slider-controls{display:none;}
 
 @media (max-width:768px){
   .reviews-slider-wrap{
     position:relative;
     width:100%;
     overflow:hidden;
+    user-select:none;
+    -webkit-user-select:none;
+    touch-action:pan-y;
+    padding:6px 0 12px;
   }
   .reviews-grid{
     display:flex !important;
     flex-direction:row !important;
     flex-wrap:nowrap !important;
-    overflow-x:auto;
-    overflow-y:hidden;
-    scroll-snap-type:x mandatory;
-    scroll-behavior:smooth;
-    -webkit-overflow-scrolling:touch;
     gap:0 !important;
-    padding:6px 0 16px !important;
+    padding:0 !important;
     width:100% !important;
-    scrollbar-width:none;
-    -ms-overflow-style:none;
-    touch-action:pan-y pinch-zoom;
+    box-sizing:border-box !important;
+    will-change:transform;
+    margin:0 !important;
+    cursor:grab;
   }
-  .reviews-grid::-webkit-scrollbar{
-    display:none;
+  .reviews-grid.grabbing{
+    cursor:grabbing;
   }
   .review-card{
     flex:0 0 100% !important;
     width:100% !important;
     max-width:100% !important;
     min-width:100% !important;
-    scroll-snap-align:start !important;
-    scroll-snap-stop:always !important;
     box-sizing:border-box !important;
     margin:0 !important;
-  }
-  .reviews-slider-controls{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    margin-top:10px;
-  }
-  .reviews-dots{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:8px;
-  }
-  .review-dot{
-    width:8px;
-    height:8px;
-    border-radius:50%;
-    background:#CCD5E4;
-    border:none;
-    padding:0;
-    cursor:pointer;
-    transition:all 240ms ease;
-    -webkit-tap-highlight-color:transparent;
-  }
-  .review-dot.active{
-    background:var(--coral);
-    width:22px;
-    border-radius:4px;
   }
 }
 
@@ -568,7 +537,6 @@ footer{padding:60px 0 36px;color:var(--ink-soft);font-size:14px;background:#F8FA
   
   .final-cta{padding:40px 20px;text-align:center;}
   
-  .reviews-grid{grid-template-columns:1fr;}
   .review-card{text-align:left;}
   .review-head{justify-content:flex-start;text-align:left;}
   
